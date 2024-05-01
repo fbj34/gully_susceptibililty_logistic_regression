@@ -97,3 +97,88 @@ summary(training_pts)
 
 names(training_pts)
 
+par(mfrow=c(2,5)) 
+boxplot(aspect ~ presence_absence, data=training_pts, main= "Aspect", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(ndvi ~ presence_absence, data=training_pts,main= "NDVI", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(curvature ~ presence_absence, data=training_pts, main="Curvature", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(elevation ~ presence_absence, data=training_pts, main="Elevation", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(erosivity ~ presence_absence, data=training_pts, main="Erosivity", xlab=" ", ylab="", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(geology ~ presence_absence, data=training_pts, main="Geology", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(landuse ~ presence_absence, data=training_pts, main="Landuse", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(slope ~ presence_absence, data=training_pts, main="Slope", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(soil ~ presence_absence, data=training_pts,main="Soil", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+boxplot(twi ~ presence_absence, data=training_pts, main="TWI", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
+
+par(mfrow=c(1,1))
+
+#checking the number of samples in class i.e gully and non-gully points
+aggregate(training_pts$soil ~training_pts$presence_absence, FUN=length)
+
+
+str(training_pts)
+summary(training_pts)
+
+
+#duplicated training data
+training_pts1 <- training_pts
+
+#SPLIT DATA INTO TWO SETS
+training_pts1$random<-runif(length(training_pts1$presence_absence))
+#runif function provides information about the uniform distribution on the interval
+#from min to max, to generate random deviates.
+train<-training_pts1[training_pts1$random<0.70, 1:11] ## the training database
+evalu<-training_pts1[training_pts1$random>=0.70, 1:11] ## the evaluation database
+
+nrow(train)
+nrow(evalu)
+
+
+library(MASS)
+log_model <- glm(presence_absence~., data=train, family="binomial")%>% stepAIC(trace=FALSE) 
+
+summary(log_model)
+
+#Predicting the probabilities for test data
+evalu$lr_pred <-log_model%>% predict(evalu, type="response")
+summary(evalu)
+
+#Accuracy assessment through AUC/ROC Plot
+library(PresenceAbsence)
+pa_validate<-data.frame(ID=1:length(evalu$presence_absence),
+                        PA=evalu$presence_absence,
+                        logistic=evalu$lr_pred)
+
+presence.absence.accuracy(pa_validate, threshold=0.5)
+error.threshold.plot(pa_validate,which.model=1)
+auc.roc.plot(pa_validate)
+
+#Accuracy assessment through comparison of mean and confusion matrix
+#Predictions values <0.5 are converted to 0, >0.5 are converted 1
+evalu$lr_pred1<-ifelse(evalu$lr_pred>0.5, "1", "0")
+mean(evalu$presence_absence==evalu$lr_pred1)
+confusionMatrix((as.factor(evalu$presence_absence)), (as.factor(evalu$lr_pred1)))
+
+#duplication raster file
+gully_factors_stack1 <-gully_factors_stack
+
+##Applying on raster file of all factor
+gully_factors_stack1$lr_pred <- predict(gully_factors_stack, log_model, type="response")
+
+#Minimum and maximum prediction values
+min(gully_factors_stack1$lr_pred@data@values, na.rm = T)
+max(gully_factors_stack1$lr_pred@data@values, na.rm = T)
+
+
+
+library(RColorBrewer)
+#There 111 graduations in the RdYlGn colour Palette. You can check for other Palettes
+MyColour <- brewer.pal(11, "RdYlGn")
+MyColour
+MyPalette<-colorRampPalette(MyColour)
+#The rev used in the col is to reverse the order of the colour so that low values appear as green while high values appear as red
+plot(gully_factors_stack1$lr_pred, main="Gully Susceptibility Map", col=rev(MyPalette(20)))
+
+
+
+
+
