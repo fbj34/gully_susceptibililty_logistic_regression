@@ -171,7 +171,7 @@ max(gully_factors_stack1$lr_pred@data@values, na.rm = T)
 
 
 library(RColorBrewer)
-#There 111 graduations in the RdYlGn colour Palette. You can check for other Palettes
+#There 11 graduations in the RdYlGn colour Palette. You can check for other Palettes
 MyColour <- brewer.pal(11, "RdYlGn")
 MyColour
 MyPalette<-colorRampPalette(MyColour)
