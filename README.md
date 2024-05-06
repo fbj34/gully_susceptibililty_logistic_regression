@@ -1,2 +1,2 @@
 # gully-repository
-logistic regression
+logistic regressions
