@@ -98,6 +98,8 @@ summary(training_pts)
 names(training_pts)
 
 par(mfrow=c(2,5)) 
+
+#checking the distribution of factors in both gully and non-gully points
 boxplot(aspect ~ presence_absence, data=training_pts, main= "Aspect", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
 boxplot(ndvi ~ presence_absence, data=training_pts,main= "NDVI", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
 boxplot(curvature ~ presence_absence, data=training_pts, main="Curvature", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue")
