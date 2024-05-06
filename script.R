@@ -181,6 +181,7 @@ MyPalette<-colorRampPalette(MyColour)
 plot(gully_factors_stack1$lr_pred, main="Gully Susceptibility Map", col=rev(MyPalette(20)))
 
 
+git remote rm origin
 
-
+git remote set-url origin https://github.com/fbj34/gully_susceptibililty_logistic_regression.git
 
