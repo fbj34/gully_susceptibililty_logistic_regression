@@ -124,12 +124,28 @@ summary(training_pts)
 #duplicated training data
 training_pts1 <- training_pts
 
+
+
+
+#converting categorical data to factor data type
+training_pts1$geology <-as.factor(training_pts1$geology)
+training_pts1$soil <-as.factor(training_pts1$soil)
+
+str(training_pts1)
+levels(training_pts1$geology)
+
+
+#implement one hot coding for categorical data
+dummy <- dummyVars(" ~ .", data=training_pts1)
+training_df <- data.frame(predict(dummy, newdata=training_pts1))
+
+
 #SPLIT DATA INTO TWO SETS
-training_pts1$random<-runif(length(training_pts1$presence_absence))
+training_df$random<-runif(length(training_df$presence_absence))
 #runif function provides information about the uniform distribution on the interval
 #from min to max, to generate random deviates.
-train<-training_pts1[training_pts1$random<0.70, 1:11] ## the training database
-evalu<-training_pts1[training_pts1$random>=0.70, 1:11] ## the evaluation database
+train<-training_df[training_df$random<0.70, 1:11] ## the training database
+evalu<-training_df[training_df$random>=0.70, 1:11] ## the evaluation database
 
 nrow(train)
 nrow(evalu)
@@ -160,15 +176,31 @@ evalu$lr_pred1<-ifelse(evalu$lr_pred>0.5, "1", "0")
 mean(evalu$presence_absence==evalu$lr_pred1)
 confusionMatrix((as.factor(evalu$presence_absence)), (as.factor(evalu$lr_pred1)))
 
-#duplication raster file
-gully_factors_stack1 <-gully_factors_stack
 
-##Applying on raster file of all factor
-gully_factors_stack1$lr_pred <- predict(gully_factors_stack, log_model, type="response")
+#converting the raster stack to a dataframe
+raster_df <-terra::as.data.frame(gully_factors_stack, xy=TRUE)
+
+raster_df$geology <-as.factor(raster_df$geology)
+raster_df$soil <-as.factor(raster_df$soil)
+
+#applying one hot coding to categorical data
+dummy <- dummyVars(" ~ .", data=raster_df)
+raster_df <- data.frame(predict(dummy, newdata=raster_df))
+
+
+#making prediction for the converted raster dataframe
+raster_df$logreg <- logreg_model %>% predict(raster_df[,3:19], type="response")
+head(raster_df)
+
+#converting the data frame back to raster
+gully_ras_logreg <- rasterFromXYZ(raster_df)
+projection(gully_ras_logreg) <-projection(gully_factors_stack)
+
+
 
 #Minimum and maximum prediction values
-min(gully_factors_stack1$lr_pred@data@values, na.rm = T)
-max(gully_factors_stack1$lr_pred@data@values, na.rm = T)
+min(gully_ras_logreg$lr_pred@data@values, na.rm = T)
+max(gully_ras_logreg$lr_pred@data@values, na.rm = T)
 
 
 
@@ -178,9 +210,7 @@ MyColour <- brewer.pal(11, "RdYlGn")
 MyColour
 MyPalette<-colorRampPalette(MyColour)
 #The rev used in the col is to reverse the order of the colour so that low values appear as green while high values appear as red
-plot(gully_factors_stack1$lr_pred, main="Gully Susceptibility Map", col=rev(MyPalette(20)))
-
-
+plot(gully_ras_logreg$logreg, main="Gully Susceptibility Map", col=rev(MyPalette(20)))
 
 
 
