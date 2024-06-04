@@ -1,71 +1,169 @@
+---
+title: "Gully Susceptibility using Logistic Regression"
+author: "Babatunde Fagbohun"
+date: "2024-06-03"
+output: html_document
+---
 
-getwd()
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
+
+```{r}
 library(sf)
+```
+
+```{r}
 library(sp)
+```
+```{r}
 library(tidyverse)
+```
+
+```{r}
 library(raster)
+```
+
+```{r}
 library(mapview)
+```
+
+```{r}
 library(rasterVis)
+```
+
 
 #reading in raster files
+```{r}
 ndvi <- raster("F:/DA/R/Gully_dataset/reclass_2018_ndv1.tif")
+```
+
+```{r}
 aspect <- raster("F:/DA/R/Gully_dataset/aspect.tif")
+```
+
+```{r}
 curvature <- raster("F:/DA/R/Gully_dataset/reclass_curvature.tif")
+```
+
+```{r}
 elevation <- raster("F:/DA/R/Gully_dataset/reclass_elevationn.tif")
+```
+
+```{r}
 erosivity <- raster("F:/DA/R/Gully_dataset/reclass_erosivity.tif")
+```
+
+```{r}
 slope <- raster("F:/DA/R/Gully_dataset/reclass_slope.tif")
+```
+
+```{r}
 twi <- raster("F:/DA/R/Gully_dataset/Reclass_TWI_filter_2nd1.tif")
+```
+
+```{r}
 landuse <- raster("F:/DA/R/Gully_dataset/lulc_recl.tif")
+```
+
+```{r}
 geology <- raster("F:/DA/R/Gully_dataset/reclass_geo.tif")
+```
+
+```{r}
 soil <- raster("F:/DA/R/Gully_dataset/reclass_soil.tif")
-
-
+```
 
 #converting raster to a list file type
-raster_list <-as.list(ndvi, aspect, curvature, elevation, erosivity, slope, twi, landuse, geology, soil)
-str(raster_list)
+```{r}
+raster_list <-as.list(ndvi, aspect, curvature, elevation, erosivity, slope ,twi, landuse, geology, soil)
+```
 
+```{r}
 #resampling so that all raster will have same dimension and origin
 raster_list_resample <- lapply(raster_list, function(x) resample(x, raster_list[[10]], method='ngb'))
+```
 
 
 #stacking raster files
+```{r}
 gully_factors_stack <- stack(raster_list_resample, quick=TRUE)
+```
 
-str(gully_factors_stack)
 
 #checking number of layers
+```{r}
 nlayers(gully_factors_stack)
+```
+
+```{r}
 names(gully_factors_stack)
+```
 
 #renaming bands of the raster file
-names(gully_factors_stack) <- c("ndvi", "aspect", "curvature","elevation", "erosivity", "slope", "twi", "landuse", "geology","soil")
+```{r}
+names(gully_factors_stack) <- c("ndvi", "aspect", "curvature","elevation", "erosivity", "slope", "twi", "landuse", "geology", "soil")
+```
 
-#plotting the distribution of training points on ndvi
+```{r}
 library(RColorBrewer)
-MyColour <- brewer.pal(11, "RdYlGn")
-MyPalette<-colorRampPalette(MyColour)
+```
 
+```{r}
+MyColour <- brewer.pal(11, "RdYlGn")
+```
+
+```{r}
+MyColour
+```
+
+```{r}
+MyPalette<-colorRampPalette(MyColour)
+```
+
+```{r}
 plot(gully_factors_stack, col=rev(MyColour))
+```
 
 #reading in shapefile of gully points and non-gully points
+```{r}
 gully_pts <- st_read("F:/DA/R/Gully_dataset/gully_tr_pts.shp", quiet = T)
+```
+
+```{r}
 non_gully_pts <- st_read("F:/DA/R/Gully_dataset/non_gully_tr_pts.shp", quiet = T)
+```
 
+
+#reading in shapefile of gully points and non-gully points
+```{r}
 summary(gully_pts)
+```
+
+```{r}
 summary(non_gully_pts)
-
-str(gully_pts)
-str(non_gully_pts)
+```
 
 
-
-library(ggplot2)
+```{r}
 library(terra)
-library(tidyterra)
+```
 
-#plotting the distribution of training points over one raster
+```{r}
+library(ggplot2)
+```
+
+```{r}
+library(terra)
+```
+
+```{r}
+library(tidyterra)
+```
+
+#plotting the distribution of training points
+```{r}
 ggplot()+
   theme_bw()+
   theme(panel.grid.major = element_blank())+
@@ -73,12 +171,17 @@ ggplot()+
   geom_sf(data=non_gully_pts, color="grey")+
   ggtitle ("Distribution of training points")+
   coord_sf()
+```
 
-#converting ndvi to terra raster  
+#converting ndvi to terra raster 
+```{r}
 ndvi_t <-rast(ndvi)
+```
 
 
 
+#plotting the distribution of training points over one raster
+```{r}
 ggplot()+
   theme_bw()+
   theme(panel.grid.major = element_blank())+
@@ -89,166 +192,340 @@ ggplot()+
   scale_color_identity(labels=c(red="Gully", lightblue="Non-gully"), guide="legend")+
   ggtitle ("distribution of training points")+
   coord_sf()
-
+```
 
 #extracting the attribute presence/absence from the imported shapefiles
+```{r}
 gully <-gully_pts$gng
+```
+
+```{r}
 non_gully <- non_gully_pts$gng
+```
+
 
 #converting imported shapefile to a spatial feature
+```{r}
 g_pts_sp <-as(gully_pts, 'Spatial')
+```
+
+```{r}
 ng_pts_sp <-as(non_gully_pts, 'Spatial')
+```
 
 #extracting values from the stacked raster file to the shape file of gully occurrences
+```{r}
 gully_ext <- raster::extract(gully_factors_stack, g_pts_sp, method="simple")
+```
 
+```{r}
 head(gully_ext)
+```
+
+```{r}
 tail(gully_ext)
+```
 
+```{r}
 summary(gully_ext)
-str(gully_ext)
-
-summary(gully_ext[,1])
-View(gully_ext)
-
+```
 
 #extracting values from the stacked raster file to the shape file of non-gully points
+```{r}
 ng_ext <- raster::extract(gully_factors_stack, ng_pts_sp, method="simple")
+```
+
+```{r}
 head(ng_ext)
+```
 
 
 #appending presence/absence (1/0) information to the data extracted from the raster
+```{r}
 g_ext_df <- data.frame(gully_ext, gully)
-ng_ext_df <- data.frame(ng_ext, non_gully)
+```
 
+```{r}
+ng_ext_df <- data.frame(ng_ext, non_gully)
+```
 
 #naming the column
+```{r}
 colnames(g_ext_df)[11] <- "presence_absence"
+```
+
+```{r}
 colnames(ng_ext_df)[11] <- "presence_absence"
+```
 
 #combining extracted data for gully points and non-gully points
+```{r}
 training_pts <- rbind(g_ext_df, ng_ext_df)
+```
+
+```{r}
 head(training_pts)
+```
+
+```{r}
 summary(training_pts)
+```
 
+```{r}
 names(training_pts)
+```
 
-par(mfrow=c(2,5)) 
+
+
+```{r}
+par(mfrow=c(2,5))
+```
 
 
 #checking the distribution of continuous factors in both gully and non-gully points
-boxplot(aspect ~ presence_absence, data=training_pts, main="Aspect", xlab=" ", ylab="Aspect ", boxwex=0.3, col="lightblue", border="black", names=c("Non-gully", "Gully"))
-boxplot(ndvi ~ presence_absence, data=training_pts, main="NDVI", xlab=" ", ylab="NDVI", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
-boxplot(curvature ~ presence_absence, data=training_pts, main="Curvature", xlab="Curvature", ylab="Curvature", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
-boxplot(elevation ~ presence_absence, data=training_pts, main="Elevation", xlab="Elevation", ylab="Elevation", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
-boxplot(erosivity ~ presence_absence, data=training_pts, main="Erosivity", xlab="Erosivity", ylab="Erosivity", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
-boxplot(slope ~ presence_absence, data=training_pts, main="Slope", xlab="Slope", ylab="Slope ", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
-boxplot(twi ~ presence_absence, data=training_pts, main="TWI", xlab="TWI", ylab="TWI", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```{r}
+boxplot(aspect ~ presence_absence, data=training_pts, main= "Aspect", xlab=" ", ylab="Aspect", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
 
-pairs(training_pts)
+```{r}
+boxplot(ndvi ~ presence_absence, data=training_pts,main= "NDVI", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
 
+```{r}
+boxplot(curvature ~ presence_absence, data=training_pts, main="Curvature", xlab=" ", ylab="Curvature", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
+
+```{r}
+boxplot(elevation ~ presence_absence, data=training_pts, main="Elevation", xlab=" ", ylab="Elevation", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
+
+```{r}
+boxplot(erosivity ~ presence_absence, data=training_pts, main="Erosivity", xlab="Erosivity", ylab="", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
+
+```{r}
+boxplot(slope ~ presence_absence, data=training_pts, main="Slope", xlab=" ", ylab="Slope", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
+```{r}
+boxplot(twi ~ presence_absence, data=training_pts, main="TWI", xlab=" ", ylab=" ", boxwex=0.3, col="lightblue", border="darkblue", names=c("Non-gully", "Gully"))
+```
+
+
+```{r}
 par(mfrow=c(1,1))
+```
 
 #checking the number of samples in class i.e gully and non-gully points
+```{r}
 aggregate(training_pts$soil ~training_pts$presence_absence, FUN=length)
+```
 
 
-str(training_pts)
-summary(training_pts)
-
-
-#duplicated training data
-training_pts1 <- training_pts
+#remove few NAs introduced due to points at the edges study area and duplicated training data
+```{r}
+training_pts1 <- na.omit(training_pts)
+```
 
 
 #converting categorical data to factor data type
+```{r}
 training_pts1$landuse <-as.factor(training_pts1$landuse)
+```
+
+```{r}
 training_pts1$geology <-as.factor(training_pts1$geology)
+```
+
+```{r}
 training_pts1$soil <-as.factor(training_pts1$soil)
+```
 
 
-str(training_pts1)
+```{r}
 levels(training_pts1$geology)
+```
 
 
+```{r}
 library(caret)
+```
+
 
 #implement one hot coding for categorical data
+```{r}
 dummy <- dummyVars(" ~ .", data=training_pts1)
+```
+
+```{r}
 training_df <- data.frame(predict(dummy, newdata=training_pts1))
+```
 
-head(training_df)
+```{r}
+training_df %>% 
+  head(n=3)
+```
+```{r}
 names(training_df)
+```
 
-#SPlitting data into training and test data
+
+
+#Split data into training and test
+```{r}
 training_df$random<-runif(length(training_df$presence_absence))
+```
+
 #runif function provides information about the uniform distribution on the interval
 #from min to max, to generate random deviates.
+```{r}
 train<-training_df[training_df$random<0.70, 1:23] ## the training data
+```
+
+```{r}
 evalu<-training_df[training_df$random>=0.70, 1:23] ## the evaluation data
+```
 
+```{r}
 nrow(train)
+```
+
+```{r}
 nrow(evalu)
+```
+
+```{r}
 names(train)
+```
+
+```{r}
 names(evalu)
+```
 
+
+```{r}
 library(MASS)
-log_model <- glm(presence_absence~., data=train, family="binomial")%>% stepAIC(trace=FALSE) 
+```
 
+```{r}
+log_model <- suppressWarnings(glm(presence_absence~., data=train, family="binomial")%>% stepAIC(trace=FALSE))
+```
+
+```{r}
 summary(log_model)
+```
+
 
 #Predicting the probabilities for test data
+```{r}
 evalu$lr_pred <-log_model%>% predict(evalu, type="response")
+```
+
+```{r}
 summary(evalu)
+```
+
 
 #Accuracy assessment through AUC/ROC Plot
+```{r}
 library(PresenceAbsence)
+```
+
+```{r}
 pa_validate<-data.frame(ID=1:length(evalu$presence_absence),
                         PA=evalu$presence_absence,
                         logistic=evalu$lr_pred)
+```
 
+```{r}
 presence.absence.accuracy(pa_validate, threshold=0.5)
+```
+
+```{r}
 error.threshold.plot(pa_validate,which.model=1)
+```
+
+```{r}
 auc.roc.plot(pa_validate)
+```
 
 #Accuracy assessment through comparison of mean and confusion matrix
 #Predictions values <0.5 are converted to 0, >0.5 are converted 1
+```{r}
 evalu$lr_pred1<-ifelse(evalu$lr_pred>0.5, "1", "0")
+```
+
+```{r}
 mean(evalu$presence_absence==evalu$lr_pred1)
+```
+
+```{r}
 confusionMatrix((as.factor(evalu$presence_absence)), (as.factor(evalu$lr_pred1)))
+```
 
 
 #converting the raster stack to a dataframe
+```{r}
 raster_df <-terra::as.data.frame(gully_factors_stack, xy=TRUE)
+```
 
+```{r}
 raster_df$landuse <-as.factor(raster_df$landuse)
+```
+
+```{r}
 raster_df$geology <-as.factor(raster_df$geology)
+```
+
+```{r}
 raster_df$soil <-as.factor(raster_df$soil)
+```
+
 
 #applying one hot coding to categorical data
+```{r}
 dummy <- dummyVars(" ~ .", data=raster_df)
+```
+
+```{r}
 raster_df <- data.frame(predict(dummy, newdata=raster_df))
+```
 
-raster_df %>%
-  colnames
 
-#making prediction for the converted raster dataframe
-raster_df$logreg <- log_model %>% predict(raster_df[,3:24], type="response")
+#making prediction for the converted dataframe created from raster files
+```{r}
+raster_df$logreg <- log_model %>% predict(raster_df[,3:23], type="response")
+```
+
+```{r}
+head(raster_df)
+```
 
 
 #converting the data frame back to raster
+```{r}
 gully_ras_logreg <- rasterFromXYZ(raster_df)
+```
+
+```{r}
 projection(gully_ras_logreg) <-projection(gully_factors_stack)
+```
 
 
 
 #Minimum and maximum prediction values
+```{r}
 min(gully_ras_logreg$logreg@data@values, na.rm = T)
-max(gully_ras_logreg$logreg@data@values, na.rm = T)
+```
+
+```{r}
+cellStats(gully_ras_logreg$logreg, max)
+```
 
 
 #Plot the gully susceptibility map
+```{r}
 plot(gully_ras_logreg$logreg, main="Gully Susceptibility Map", col=rev(MyPalette(20)))
+```
 
 
 
