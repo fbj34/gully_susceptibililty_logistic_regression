@@ -30,7 +30,7 @@ str(raster_list)
 raster_list_resample <- lapply(raster_list, function(x) resample(x, raster_list[[10]], method='ngb'))
 
 
-#stacking raster files
+#stacking raster files in the list
 gully_factors_stack <- stack(raster_list_resample, quick=TRUE)
 
 str(gully_factors_stack)
@@ -157,9 +157,11 @@ str(training_pts)
 summary(training_pts)
 
 
-#duplicated training data
-training_pts1 <- training_pts
 
+#duplicated training data
+training_pts1 <- na.omit(training_pts)
+summary(training_pts1)
+aggregate(training_pts1$soil ~training_pts1$presence_absence, FUN=length)
 
 #converting categorical data to factor data type
 training_pts1$landuse <-as.factor(training_pts1$landuse)
@@ -193,7 +195,7 @@ names(train)
 names(evalu)
 
 library(MASS)
-log_model <- glm(presence_absence~., data=train, family="binomial")%>% stepAIC(trace=FALSE) 
+log_model <- suppressWarnings(glm(presence_absence~., data=train, family="binomial")%>% stepAIC(trace=FALSE))
 
 summary(log_model)
 
